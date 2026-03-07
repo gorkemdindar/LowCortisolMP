@@ -332,6 +332,7 @@
       <div class="announcement" id="announcement-banner">
         <span>📢</span>
         <span class="announcement-text" id="announcement-text"></span>
+        <span id="announce-refresh-btn" onclick="refreshAnnouncement()" style="cursor:pointer;color:var(--text-faint);font-size:13px;padding:0 6px;transition:color 0.15s;" title="Yenile">↻</span>
         <span class="announcement-close" onclick="dismissAnnouncement()">✕</span>
       </div>
 
@@ -551,6 +552,9 @@
         <div class="page-header">
           <h1>Sorun <em>Bildirimleri</em></h1>
           <p>Kullanıcıların bildirdiği sorunlar</p>
+        </div>
+        <div style="margin-bottom:16px;">
+          <button class="btn btn-ghost btn-sm" onclick="refreshReports(this)">↻ Yenile</button>
         </div>
         <div class="alert" id="reports-alert"></div>
         <div class="table-card">
@@ -936,6 +940,20 @@
       </div>
     `).join('') + '<div class="chat-empty" id="chat-empty" style="display:none"></div>';
     container.scrollTop = container.scrollHeight;
+  }
+
+  async function refreshAnnouncement() {
+    const btn = document.getElementById('announce-refresh-btn');
+    btn.style.color = 'var(--emerald)';
+    await loadBroadcast();
+    setTimeout(() => btn.style.color = 'var(--text-faint)', 600);
+  }
+
+  async function refreshReports(btn) {
+    const orig = btn.textContent;
+    btn.textContent = '↻ Yükleniyor...'; btn.disabled = true;
+    await loadReports();
+    btn.textContent = orig; btn.disabled = false;
   }
 
   async function refreshChat() {
