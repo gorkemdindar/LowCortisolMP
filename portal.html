@@ -604,6 +604,7 @@
     btn.innerHTML = '🔒 Şifremi Güncelle';
     if (error) return showResetAlert(error.message, 'error');
     showResetAlert('✓ Şifren güncellendi! Giriş yapabilirsin.', 'success');
+    await sb.auth.signOut();
     setTimeout(() => { showScreen('auth'); switchTab('login'); }, 2000);
   }
 
@@ -624,26 +625,36 @@
     showScreen('auth');
   }
 
-  // Listen for auth state changes — catches PASSWORD_RECOVERY event reliably
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      history.replaceState(null, '', window.location.pathname);
-      showScreen('reset');
-      return;
-    }
-    if (event === 'SIGNED_IN' && session?.user) {
-      // Only auto-navigate if we're not already on reset screen
-      const resetActive = document.getElementById('screen-reset').classList.contains('active');
-      if (!resetActive) {
-        history.replaceState(null, '', window.location.pathname);
-        await checkUserStatus(session.user);
-      }
-    }
-  });
-
   (async () => {
     const hash = window.location.hash;
 
+    // PASSWORD RECOVERY — Supabase puts access_token in hash for reset links
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const type = params.get('type');
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token') || '';
+
+      if (type === 'recovery' && accessToken) {
+        // Set the session so updateUser() works
+        await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        history.replaceState(null, '', window.location.pathname);
+        showScreen('reset');
+        return;
+      }
+
+      // Other access_token (e.g. email confirm fallback)
+      if (type !== 'recovery') {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session?.user) {
+          history.replaceState(null, '', window.location.pathname);
+          await checkUserStatus(session.user);
+          return;
+        }
+      }
+    }
+
+    // SIGNUP CONFIRMATION
     if (hash && hash.includes('type=signup')) {
       const params = new URLSearchParams(hash.replace('#', ''));
       const tokenHash = params.get('token_hash') || hash.replace('#', '').split('&')[0];
@@ -660,11 +671,9 @@
       }
     }
 
-    // Normal session restore (skip if hash present — onAuthStateChange will handle it)
-    if (!hash || (!hash.includes('access_token') && !hash.includes('type='))) {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session?.user) await checkUserStatus(session.user);
-    }
+    // NORMAL SESSION RESTORE
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) await checkUserStatus(session.user);
   })();
 </script>
 </body>
