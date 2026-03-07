@@ -542,10 +542,10 @@
 
     // Load data
     await loadSettings();
+    await loadBroadcast();
     if (isAdmin) {
       await loadUsers();
       await loadPending();
-      await loadBroadcast();
     }
   }
 
@@ -596,11 +596,7 @@
       if (banner) banner.style.display = status === 'offline' ? 'flex' : 'none';
     }
 
-    // Broadcast banner
-    if (broadcast) {
-      document.getElementById('announcement-text').textContent = broadcast;
-      document.getElementById('announcement-banner').classList.add('show');
-    }
+    // Broadcast banner handled by loadBroadcast()
   }
 
   // ── SERVER STATUS (admin) ──
@@ -724,7 +720,16 @@
   // ── BROADCAST (admin) ──
   async function loadBroadcast() {
     const msg = await getSetting('broadcast') || '';
-    document.getElementById('current-broadcast-text').textContent = msg || 'Aktif duyuru yok.';
+    // Update preview panel (admin)
+    const previewEl = document.getElementById('current-broadcast-text');
+    if (previewEl) previewEl.textContent = msg || 'Aktif duyuru yok.';
+    // Update announcement banner (all users)
+    if (msg) {
+      document.getElementById('announcement-text').textContent = msg;
+      document.getElementById('announcement-banner').classList.add('show');
+    } else {
+      document.getElementById('announcement-banner').classList.remove('show');
+    }
   }
 
   async function sendBroadcast() {
