@@ -691,7 +691,7 @@
 
   // ── SERVER STATUS (admin) ──
   async function setServerStatus(status) {
-    const now = new Date().toLocaleString('tr-TR');
+    const now = new Date().toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'});
     await setSetting('server_status', status);
     await setSetting('status_updated', now);
     showAlert('server-alert', status === 'online' ? '✓ Sunucu çevrimiçi yapıldı.' : '✓ Sunucu çevrimdışı yapıldı.', 'green');
@@ -711,7 +711,7 @@
   async function requestServerStart() {
     const btns = ['btn-request-start','btn-request-start2'];
     btns.forEach(id => { const b = document.getElementById(id); if(b){b.disabled=true;b.innerHTML='<span class="spinner"></span>Gönderiliyor...';} });
-    await setSetting('start_request', currentUser.username + ' sunucunun başlatılmasını istedi — ' + new Date().toLocaleString('tr-TR'));
+    await setSetting('start_request', currentUser.username + ' sunucunun başlatılmasını istedi — ' + new Date().toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}));
     btns.forEach(id => { const b = document.getElementById(id); if(b){b.disabled=true;b.textContent='✓ İstek Gönderildi';} });
   }
 
@@ -938,6 +938,14 @@
     container.scrollTop = container.scrollHeight;
   }
 
+  async function refreshChat() {
+    const btn = document.getElementById('chat-refresh-btn');
+    btn.style.color = 'var(--emerald)';
+    await loadBroadcast();
+    await loadChatMessages();
+    setTimeout(() => btn.style.color = 'var(--text-faint)', 600);
+  }
+
   async function sendChatMsg() {
     const input = document.getElementById('chat-msg-input');
     const text = input.value.trim();
@@ -947,7 +955,7 @@
     const raw = await getSetting('announcements') || '[]';
     let msgs = [];
     try { msgs = JSON.parse(raw); } catch { msgs = []; }
-    msgs.push({ text, time: new Date().toLocaleString('tr-TR') });
+    msgs.push({ text, time: new Date().toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) });
     if (msgs.length > 20) msgs = msgs.slice(-20);
     const ok = await setSetting('announcements', JSON.stringify(msgs));
     sendBtn.textContent = '📢 Gönder'; sendBtn.disabled = false;
@@ -989,7 +997,7 @@
       email: currentUser.email,
       topic: selectedTopic,
       text,
-      time: new Date().toLocaleString('tr-TR')
+      time: new Date().toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'})
     });
     const ok = await setSetting('reports', JSON.stringify(reports));
     btn.disabled = false; btn.textContent = 'Gönder →';
@@ -1013,7 +1021,10 @@
 <div id="chatbox">
   <div class="chat-toggle" onclick="toggleChat()">
     <span class="chat-toggle-title">📢 DUYURULAR</span>
-    <span class="chat-toggle-icon" id="chat-icon">▲</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="chat-refresh-btn" onclick="event.stopPropagation();refreshChat()" style="font-size:11px;color:var(--text-faint);cursor:pointer;padding:2px 6px;border:1px solid var(--border);transition:color 0.15s;" title="Yenile">↻</span>
+      <span class="chat-toggle-icon" id="chat-icon">▲</span>
+    </div>
   </div>
   <div class="chat-body" id="chat-body">
     <div class="chat-messages" id="chat-messages">
