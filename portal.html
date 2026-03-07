@@ -229,7 +229,6 @@
     .screen { display: none; }
     .screen.active { display: block; }
 
-    /* Confirm email screen */
     .confirm-box {
       text-align: center;
       padding: 16px 0 20px;
@@ -275,7 +274,6 @@
       margin-top: 6px;
     }
 
-    /* Pending screen */
     .pending-box {
       text-align: center;
       padding: 20px 0;
@@ -306,7 +304,6 @@
       line-height: 1.5;
     }
 
-    /* Dashboard screen */
     .dashboard { text-align: center; }
     .dashboard h2 {
       font-family: 'Press Start 2P', monospace;
@@ -386,7 +383,6 @@
     <p>Powered by Low Cortisol</p>
   </div>
 
-  <!-- AUTH SCREEN -->
   <div class="screen active" id="screen-auth">
     <div class="tabs">
       <div class="tab active" id="tab-login"  onclick="switchTab('login')">Giriş Yap</div>
@@ -395,7 +391,6 @@
 
     <div class="alert" id="auth-alert"></div>
 
-    <!-- Login form -->
     <div id="form-login">
       <div class="form-group">
         <label>E-posta</label>
@@ -408,7 +403,6 @@
       <button class="btn btn-start" id="btn-login" onclick="doLogin()">▶ Giriş Yap</button>
     </div>
 
-    <!-- Signup form -->
     <div id="form-signup" style="display:none">
       <div class="form-group">
         <label>Minecraft Kullanıcı Adı</label>
@@ -426,7 +420,6 @@
     </div>
   </div>
 
-  <!-- CONFIRM EMAIL SCREEN -->
   <div class="screen" id="screen-confirm">
     <div class="confirm-box">
       <span class="confirm-icon">📬</span>
@@ -439,7 +432,6 @@
     <span class="logout-link" onclick="showScreen('auth'); switchTab('login')">← Giriş ekranına dön</span>
   </div>
 
-  <!-- PENDING SCREEN -->
   <div class="screen" id="screen-pending">
     <div class="pending-box">
       <span class="pending-icon">⏳</span>
@@ -450,12 +442,10 @@
     <span class="logout-link" onclick="doLogout()">← Çıkış Yap</span>
   </div>
 
-  <!-- APPROVED / DASHBOARD SCREEN -->
   <div class="screen" id="screen-dashboard">
     <div class="dashboard">
       <h2>✅ Onay<br>Verildi</h2>
       <p id="welcome-msg">Hoşgeldin!</p>
-
       <div class="server-status">
         <div class="status-row">
           <span class="status-label">DURUM</span>
@@ -470,7 +460,6 @@
           <span class="status-val">1.21.x</span>
         </div>
       </div>
-
       <button class="btn btn-start" onclick="alert('⚒️ Sunucu başlatma özelliği yakında! (Faz 3)')">
         ▶ SUNUCUYU BAŞLAT
       </button>
@@ -483,14 +472,12 @@
 <script>
   const SUPABASE_URL  = 'https://wgxmvlvfchbfgdfqwqog.supabase.co';
   const SUPABASE_ANON = 'sb_publishable_xsEvj7SkmvIvuNky8TWIpg_Gdovm8Ju';
-
   const TABLE_PENDING  = 'bekleyen';
   const TABLE_APPROVED = 'onay';
 
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  // Particle effect
   const container = document.getElementById('particles');
   for (let i = 0; i < 18; i++) {
     const p = document.createElement('div');
@@ -621,6 +608,35 @@
   }
 
   (async () => {
+    // Handle email confirmation token in URL hash
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=signup')) {
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const tokenHash = params.get('token_hash') || hash.replace('#', '').split('&')[0];
+      if (tokenHash) {
+        const { data, error } = await sb.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'signup'
+        });
+        if (!error && data.user) {
+          history.replaceState(null, '', window.location.pathname);
+          await checkUserStatus(data.user);
+          return;
+        }
+      }
+    }
+
+    // Handle access_token in URL (fallback)
+    if (hash && hash.includes('access_token')) {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) {
+        history.replaceState(null, '', window.location.pathname);
+        await checkUserStatus(session.user);
+        return;
+      }
+    }
+
+    // Normal session restore
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user) await checkUserStatus(session.user);
   })();
