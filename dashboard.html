@@ -372,6 +372,15 @@
           <button class="btn btn-green btn-sm" onclick="requestServerStart()" id="btn-request-start">▶ Sunucuyu Başlat</button>
         </div>
 
+        <!-- Starting countdown banner -->
+        <div id="starting-banner" style="display:none;background:rgba(251,191,36,0.08);border:1px solid #713f12;border-left:3px solid var(--yellow);padding:16px 20px;margin-bottom:20px;display:none;align-items:center;gap:12px;">
+          <span style="font-size:18px;">⚙️</span>
+          <div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--yellow);margin-bottom:4px;">SUNUCU BAŞLATIYOR</div>
+            <div style="font-size:13px;color:var(--text-dim);">Sunucu yaklaşık <strong style="color:var(--yellow)" id="countdown-text">30</strong> saniye içinde hazır olacak. Lütfen bekle...</div>
+          </div>
+        </div>
+
         <div class="server-card">
           <div class="server-card-header">
             <span class="server-card-title">SUNUCU BİLGİLERİ</span>
@@ -686,10 +695,10 @@
   }
 
   async function loadSettings() {
-    const ip        = await getSetting('server_ip')     || '—';
-    const status    = await getSetting('server_status') || 'offline';
-    const updated   = await getSetting('status_updated')|| '—';
-    const broadcast = await getSetting('broadcast')     || '';
+    const ip        = await getSetting('server_ip')       || '—';
+    const status    = await getSetting('server_status')   || 'offline';
+    const updated   = await getSetting('status_updated')  || '—';
+    const countdown = await getSetting('start_countdown') || '';
     serverStatus = status;
 
     // Status display values
@@ -726,6 +735,18 @@
     if (!isAdmin) {
       const banner = document.getElementById('start-request-banner');
       if (banner) banner.style.display = (status === 'offline') ? 'flex' : 'none';
+    }
+
+    // Show/hide countdown banner
+    const startingBanner = document.getElementById('starting-banner');
+    const countdownText  = document.getElementById('countdown-text');
+    if (startingBanner) {
+      if (status === 'starting' && countdown) {
+        startingBanner.style.display = 'flex';
+        if (countdownText) countdownText.textContent = countdown;
+      } else {
+        startingBanner.style.display = 'none';
+      }
     }
 
     // Broadcast banner handled by loadBroadcast()
@@ -784,7 +805,7 @@
     if (!error) {
       startRequestCooldown = true;
       btns.forEach(id => { const b = document.getElementById(id); if(b){b.disabled=true;b.textContent='✓ İstek Gönderildi';} });
-      let secs = 300;
+      let secs = 120;
       const timer = setInterval(() => {
         secs--;
         btns.forEach(id => { const b = document.getElementById(id); if(b) b.textContent=`⏳ Tekrar gönder (${secs}s)`; });
